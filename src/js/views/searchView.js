@@ -1,30 +1,22 @@
-import View from "./views.js";
+class SearchView {
+  _parentEl = document.querySelector('.search');
 
-class SearchView extends View {
-    _parentEl = document.querySelector('.search')
+  getQuery() {
+    const query = this._parentEl.querySelector('.search__field').value;
+    this._clearInput();
+    return query;
+  }
 
-    //get query from searchh field
-    getQuery(){
-        const query =  this._parentEl.querySelector('.search__field').value;
-        this._clearField();
-        return  query;
-    }
+  _clearInput() {
+    this._parentEl.querySelector('.search__field').value = '';
+  }
 
-    //clear field
-    _clearField(){
-        this._parentEl.querySelector('.search__field').value = ' ';
-        this._parentEl.querySelector('.search__field').blur();
-    }
-
-
-    //handler  the submit search
-    addHandlerSearch(handler){
-        this._parentEl.addEventListener('submit',function(e){
-            e.preventDefault()
-            handler()
-        })
-    }
-
+  addHandlerSearch(handler) {
+    this._parentEl.addEventListener('submit', function (e) {
+      e.preventDefault();
+      handler();
+    });
+  }
 }
 
-export default new SearchView()
+export default new SearchView();

@@ -1,22 +1,18 @@
-import { API_URL, RES_PER_PAGE, KEY } from "./config.js";
-// import {getJson, sendJson} from "./helpers.js";
-import { AJAX } from "./helpers.js";
+import { async } from 'regenerator-runtime';
+import { API_URL, RES_PER_PAGE, KEY } from './config.js';
+import { AJAX } from './helpers.js';
 
-//cm:and this will work globally
-//cm:Here Will Be the Most Impotent Data
 export const state = {
   recipe: {},
   search: {
-    query: "",
-    result: [],
+    query: '',
+    results: [],
     page: 1,
-    resultPage: RES_PER_PAGE,
+    resultsPerPage: RES_PER_PAGE,
   },
-  bookmark: [],
+  bookmarks: [],
 };
 
-//refactoring:
-//create recipe object
 const createRecipeObject = function (data) {
   const { recipe } = data.data;
   return {
@@ -32,168 +28,115 @@ const createRecipeObject = function (data) {
   };
 };
 
-//get the api object with api url and ip
-//cm:this will not return anything , All it will do, is the change the state object
-export const roadRecipe = async function (id) {
+export const loadRecipe = async function (id) {
   try {
-    //cm:refactor it
-    // const res = await fetch(
-    //     `${API_URL}/${id}`
-    //     // `https://forkify-api.herokuapp.com/api/v2/recipes/5ed6604591c37cdc054bc886`
-    //   );
-    // //   console.log(res);
-    //   // console.log(res);
-    //   const data = await res.json();
-    //   // console.log(data);
-    //   if (!res.ok) throw new Error(`${data.message} : ${data.status}`);
-    //cm:We await for this promise
     const data = await AJAX(`${API_URL}${id}?key=${KEY}`);
-    //cm:construct it
-    // const { recipe } = data.data;
-    // // console.log(data);
-    // //cm:changing the key And put in the state.recipe
-    // state.recipe = {
-    //   publisher: recipe.publisher,
-    //   ingredients: recipe.ingredients,
-    //   sourceUrl: recipe.source_url,
-    //   image: recipe.image_url,
-    //   title: recipe.title,
-    //   servings: recipe.servings,
-    //   cookingTime: recipe.cooking_time,
-    //   id: recipe.id,
-    // };
     state.recipe = createRecipeObject(data);
 
-    //cm:Solving the problem which is not store the bookmarks
-    //cm:Using the some(any) method , which will return true or false if there are anything are same the condition
-    if (state.bookmark.some((bookmark) => bookmark.id === id))
-      state.recipe.bookmark = true;
-    else state.recipe.bookmark = false;
+    if (state.bookmarks.some(bookmark => bookmark.id === id))
+      state.recipe.bookmarked = true;
+    else state.recipe.bookmarked = false;
 
-    // console.log(state.recipe);
-  } catch (error) {
-    // console.error(`${error} 💥💥💥💥💥💥`);
-
-    //cm:Here also we should rethrow the error
-    throw `${error} 💥💥💥💥💥💥`;
+  } catch (err) {
+    // Temp error handling
+    console.error(`${err} 💥💥💥💥`);
+    throw err;
   }
 };
 
-//loading search result from search query and creat new object
-export const loadSearchResult = async function (query) {
+export const loadSearchResults = async function (query) {
   try {
+    state.search.query = query;
+
     const data = await AJAX(`${API_URL}?search=${query}&key=${KEY}`);
-    //IN each iteration it will create an array with these value in the state
-    state.search.result = data.data.recipes.map((rec) => {
+    console.log(data);
+
+    state.search.results = data.data.recipes.map(rec => {
       return {
+        id: rec.id,
+        title: rec.title,
         publisher: rec.publisher,
         image: rec.image_url,
-        title: rec.title,
-        id: rec.id,
         ...(rec.key && { key: rec.key }),
       };
     });
-    //reset the page
     state.search.page = 1;
   } catch (err) {
-    throw `${err} 💥💥💥💥💥💥`;
+    console.error(`${err} 💥💥💥💥`);
+    throw err;
   }
 };
 
-//get number of page from search result
 export const getSearchResultsPage = function (page = state.search.page) {
   state.search.page = page;
 
-  //tip:if the page are 1 , soo (1 - 1 = 0) then  (0 * 10) = 0
-  const start = (page - 1) * state.search.resultPage; //0
-  const end = page * state.search.resultPage; //10
+  const start = (page - 1) * state.search.resultsPerPage; // 0
+  const end = page * state.search.resultsPerPage; // 9
 
-  //cm:As the Arrays are 0 base and slice don't take the last index , we pass the 0 to 10 Aaaaaaaand get the index 0 to 9
-  return state.search.result.slice(start, end);
+  return state.search.results.slice(start, end);
 };
 
-//update serving model
-export const updateServings = function (NewServing) {
-  //cm: newQuantity : oldQuantity * newServing / oldServing
-  state.recipe.ingredients.forEach((ing) => {
-    ing.quantity = (ing.quantity * NewServing) / state.recipe.servings;
+export const updateServings = function (newServings) {
+  state.recipe.ingredients.forEach(ing => {
+    ing.quantity = (ing.quantity * newServings) / state.recipe.servings;
+    // newQt = oldQt * newServings / oldServings // 2 * 8 / 4 = 4
   });
 
-  //update the new serving
-  state.recipe.servings = NewServing;
+  state.recipe.servings = newServings;
 };
 
-//Local storage:
-//we do not need to export it
-const persistBookmark = function () {
-  //set the name of storage and make the data stringify
-  localStorage.setItem("bookmark", JSON.stringify(state.bookmark));
+const persistBookmarks = function () {
+  localStorage.setItem('bookmarks', JSON.stringify(state.bookmarks));
 };
 
-//As bookmark, it will receive a recipe and save it
 export const addBookmark = function (recipe) {
-  //Add the recipe bookmark
-  state.bookmark.push(recipe);
+  // Add bookmark
+  state.bookmarks.push(recipe);
 
-  //Mark correct recipe as bookmark
-  if (recipe.id === state.recipe.id) state.recipe.bookmark = true;
+  // Mark current recipe as bookmarked
+  if (recipe.id === state.recipe.id) state.recipe.bookmarked = true;
 
-  persistBookmark();
+  persistBookmarks();
 };
 
-//cm:this is very common that when we add data we're adding entire data , but when we're deleting ,
-// we get just id(unique)
-//It will receive an id and delete it from bookmark
 export const deleteBookmark = function (id) {
-  //delete bookmark
+  // Delete bookmark
+  const index = state.bookmarks.findIndex(el => el.id === id);
+  state.bookmarks.splice(index, 1);
 
-  //create index : bookmark id must be equal to passing id
-  const index = state.bookmark.findIndex((index) => index.id === id);
+  // Mark current recipe as NOT bookmarked
+  if (id === state.recipe.id) state.recipe.bookmarked = false;
 
-  //remove from array
-  state.bookmark.splice(index, 1);
-
-  if (id === state.recipe.id) state.recipe.bookmark = false;
-
-  persistBookmark();
+  persistBookmarks();
 };
 
-//initial function for getting the local storage:
 const init = function () {
-  //get data
-  const storage = localStorage.getItem("bookmark");
-  //if is it exist , parse it and store it
-  if (storage) state.bookmark = JSON.parse(storage);
+  const storage = localStorage.getItem('bookmarks');
+  if (storage) state.bookmarks = JSON.parse(storage);
 };
 init();
 
-//Sending the data to the API
-//cm:It must be exactly like the data that come from api
+const clearBookmarks = function () {
+  localStorage.clear('bookmarks');
+};
+
 export const uploadRecipe = async function (newRecipe) {
   try {
-    //1.Make it entry
     const ingredients = Object.entries(newRecipe)
-      //2.filter the ingredient except the empty ones
-      .filter((entry) => entry[0].startsWith("ingredient") && entry[1] !== "")
-      .map((ing) => {
-        //3.cut any white space and split hem with comma
-        const ingArr = ing[1].split(",").map((el) => el.trim());
-        //4.Error handling:
-        if (ingArr.length !== 3) {
-          throw Error(
-            "Wrong ingredient format! Please use the correct format :)",
+      .filter(entry => entry[0].startsWith('ingredient') && entry[1] !== '')
+      .map(ing => {
+        const ingArr = ing[1].split(',').map(el => el.trim());
+        // const ingArr = ing[1].replaceAll(' ', '').split(',');
+        if (ingArr.length !== 3)
+          throw new Error(
+            'Wrong ingredient format! Please use the correct format :)'
           );
-        }
 
-        //5.Destructuring:
         const [quantity, unit, description] = ingArr;
 
-        //6.if quantity are exist than convert to number
         return { quantity: quantity ? +quantity : null, unit, description };
       });
 
-    //creating the recipe:
-    //cm:Its opposite of taking data from API
     const recipe = {
       title: newRecipe.title,
       source_url: newRecipe.sourceUrl,
@@ -204,13 +147,10 @@ export const uploadRecipe = async function (newRecipe) {
       ingredients,
     };
 
-    console.log(recipe);
-    //send the request and store the response
     const data = await AJAX(`${API_URL}?key=${KEY}`, recipe);
     state.recipe = createRecipeObject(data);
     addBookmark(state.recipe);
   } catch (err) {
-    console.error("💥💥", err);
     throw err;
   }
 };

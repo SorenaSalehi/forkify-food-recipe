@@ -1,58 +1,42 @@
-import Fraction from "fraction.js";
-import View from "./views.js";
-// console.log(Fraction);
-import icons from "url:../../img/icons.svg";
+import View from './View.js';
+import icons from 'url:../../img/icons.svg';
+import { Fraction } from 'fractional';
 
 class RecipeView extends View {
-  _parentEl = document.querySelector(".recipe");
-  _errorMessage = `We could Not find that Recipe ! Please Try another one OR check Your Input 😟`;
-  _message = " ";
+  _parentElement = document.querySelector('.recipe');
+  _errorMessage = 'We could not find that recipe. Please try another one!';
+  _message = '';
 
-  //cm:windows hash changer listener
-  //tip:here we have duplicated code,And we don't want it!
-  // window.addEventListener('hashchange',controlRecipe)
-  // window.addEventListener('load',controlRecipe)
-  //new:SO we do that:
-  // ['hashchange','load'].forEach(ev => window.addEventListener(ev,controlRecipe))
-  //cm:publisher-subscriber pattern
   addHandlerRender(handler) {
-    ["hashchange", "load"].forEach((ev) =>
-      window.addEventListener(ev, handler),
-    );
+    ['hashchange', 'load'].forEach(ev => window.addEventListener(ev, handler));
   }
 
-  addHandlerControlServings(handler) {
-    this._parentEl.addEventListener("click", function (e) {
-      const btn = e.target.closest(".btn--update-servings");
+  addHandlerUpdateServings(handler) {
+    this._parentElement.addEventListener('click', function (e) {
+      const btn = e.target.closest('.btn--update-servings');
       if (!btn) return;
-
-      //NEW servings
-      const updateTo = +btn.dataset.updateTo;
-
-      //The update Logic
-      if (updateTo > 0) handler(updateTo);
+      const { updateTo } = btn.dataset;
+      if (+updateTo > 0) handler(+updateTo);
     });
   }
 
-  //Add bookmark handler
-  //tip:In this case the event dedication is necessary , because the element that we want to listen for it , when the page are loaded are not exist
   addHandlerAddBookmark(handler) {
-    this._parentEl.addEventListener("click", function (e) {
-      const btn = e.target.closest(".btn--bookmark");
+    this._parentElement.addEventListener('click', function (e) {
+      const btn = e.target.closest('.btn--bookmark');
       if (!btn) return;
       handler();
     });
   }
 
-  //cm:Its (_)work because of babel
   _generateMarkup() {
-    return ` <figure class="recipe__fig">
+    return `
+      <figure class="recipe__fig">
         <img src="${this._data.image}" alt="${
-          this._data.title
-        }" class="recipe__img" />
-                        <h1 class="recipe__title">
-                          <span>${this._data.title}</span>
-                        </h1>
+      this._data.title
+    }" class="recipe__img" />
+        <h1 class="recipe__title">
+          <span>${this._data.title}</span>
+        </h1>
       </figure>
 
       <div class="recipe__details">
@@ -75,12 +59,16 @@ class RecipeView extends View {
           <span class="recipe__info-text">servings</span>
 
           <div class="recipe__info-buttons">
-            <button data-update-to =" ${this._data.servings - 1}" class="btn--tiny btn--update-servings"  >
+            <button class="btn--tiny btn--update-servings" data-update-to="${
+              this._data.servings - 1
+            }">
               <svg>
                 <use href="${icons}#icon-minus-circle"></use>
               </svg>
             </button>
-            <button  data-update-to =" ${this._data.servings + 1}" class="btn--tiny btn--update-servings"  >
+            <button class="btn--tiny btn--update-servings" data-update-to="${
+              this._data.servings + 1
+            }">
               <svg>
                 <use href="${icons}#icon-plus-circle"></use>
               </svg>
@@ -88,14 +76,16 @@ class RecipeView extends View {
           </div>
         </div>
 
-        <div class="recipe__user-generated hidden">
+        <div class="recipe__user-generated ${this._data.key ? '' : 'hidden'}">
           <svg>
             <use href="${icons}#icon-user"></use>
           </svg>
         </div>
         <button class="btn--round btn--bookmark">
           <svg class="">
-            <use href="${icons}#icon-bookmark${this._data.bookmark ? "-fill" : ""}"></use>
+            <use href="${icons}#icon-bookmark${
+      this._data.bookmarked ? '-fill' : ''
+    }"></use>
           </svg>
         </button>
       </div>
@@ -103,11 +93,7 @@ class RecipeView extends View {
       <div class="recipe__ingredients">
         <h2 class="heading--2">Recipe ingredients</h2>
         <ul class="recipe__ingredient-list">
-        ${this._data.ingredients
-          //cm:creating a new array whit these string and then join them
-          .map((ing) => this._renderIngredients(ing))
-          .join(" ")}
-        </ul>
+          ${this._data.ingredients.map(this._generateMarkupIngredient).join('')}
       </div>
 
       <div class="recipe__directions">
@@ -130,25 +116,25 @@ class RecipeView extends View {
           </svg>
         </a>
       </div>
-  `;
+    `;
   }
-  _renderIngredients(ing) {
-    return `<li class="recipe__ingredient">
-          <svg class="recipe__icon">
-             <use href="${icons}#icon-check"></use>
-        </svg>
-                <div class="recipe__quantity">${
-                  !ing.quantity
-                    ? ""
-                    : new Fraction(ing.quantity).toFraction(true)
-                }</div>
-                <div class="recipe__description">
-          <span class="recipe__unit">${ing.unit}</span>
-          ${ing.description}
-        </div>
-       </li>`;
+
+  _generateMarkupIngredient(ing) {
+    return `
+    <li class="recipe__ingredient">
+      <svg class="recipe__icon">
+        <use href="${icons}#icon-check"></use>
+      </svg>
+      <div class="recipe__quantity">${
+        ing.quantity ? new Fraction(ing.quantity).toString() : ''
+      }</div>
+      <div class="recipe__description">
+        <span class="recipe__unit">${ing.unit}</span>
+        ${ing.description}
+      </div>
+    </li>
+  `;
   }
 }
 
-//We want to export one new object and can have any name that we want
 export default new RecipeView();
